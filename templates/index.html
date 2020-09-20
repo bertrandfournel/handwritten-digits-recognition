@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="Description" content="A simple app to recognize handwritten digits by webcam."/>
+        <meta name="author" content="Bertrand Fournel - Hélène Tilquin - Guillian Le Pennec" />
+        <meta name="viewport" content="width=device-width, intial-scale=1">  
+        <link href="https://fonts.googleapis.com/css?family=Roboto+Mono&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="{{url_for('static', filename = 'style.css')}}">
+        <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+        <title>Handwritten digits recognition</title>
+    </head>
+<body>
+    <h3>Handwritten digits recognition</h3>
+        <p>Show me a handwritten digit and I will recognize which digit is...
+            Place your digit in the red square.
+        </p>
+    
+    <div class="video-wrap">
+        <canvas id="canvas-vision" width="400" height="300">
+            <video id="video" playinline autoplay>
+            </video>
+        </canvas>
+    </div>
+    <canvas id="canvas-processing" width="28" height="28" class="processing">
+    </canvas>
+
+
+    
+
+    <p><span id="result-element"></span></p>
+    
+    <p id="credits">Project made with ❤️ by <a href="https://htilquin.github.io/">Hélène Tilquin</a>, <a href="https://github.com/Teykowo">Guilian Le Pennec</a> and <a href="https://bertrandfournel.github.io/">Bertrand Fournel</a></p>
+
+    <script type=text/javascript src="{{
+        url_for('static', filename='jquery.js') }}">
+    </script>
+
+    <script type=text/javascript>
+        $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+    </script>
+
+    <script>
+        'use strict'
+
+        const video = document.getElementById('video');
+        const dataCup = document.getElementById('data')
+
+        const zone = 140;
+
+        const canvas_vision = document.getElementById('canvas-vision');
+        var ctx_vision = canvas_vision.getContext('2d');
+        const width = canvas_vision.width
+        const height = canvas_vision.height
+
+        const canvas_processing = document.getElementById('canvas-processing');
+        var ctx_processing = canvas_processing.getContext('2d');
+
+        const canvas_result = document.getElementById('canvas-result');
+        var ctx_result = canvas_processing.getContext('2d');
+
+
+        const snap = document.getElementById('snap');
+        const errorMsgElement = document.getElementById('spanErrorMsg');
+        
+        function toBlackAndWhiteAndInverse(arr){
+            let resultNb = []
+            let final = []
+            // Suppression du canal Alpha
+            for (let i = 3; i < arr.length; i+=3) {
+                arr.splice(i, 1)
+            }
+            // Mise en noir et blanc
+            for (let i=0; i < arr.length; i+=3){
+                let pixelNb = Math.round((arr[i] + arr[i+1] + arr[i+2]) / 3)
+                resultNb.push(pixelNb)
+            }
+            // On inverse
+            for(let i=0; i < resultNb.length; i++){
+                let pix = Math.abs(resultNb[i] - 255)
+                final.push(pix)
+            }
+            return final
+        }
+
+        function resize(arr){
+            let final = []
+            for(let i=0; i < arr.length; i+=25){
+                final.push(arr[i])
+            }
+            return final
+        }
+
+        
+
+        const constraints = {
+            audio :false,
+            video :{
+                width: width,
+                height : height
+            }
+        };
+        
+        async function init(){
+            try{
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                handleSuccess(stream);
+            }
+            catch(e){
+                errorMsgElement.innerHTML = `navigator.getUserMedia.error:${e.toString()}`;
+            }
+        }
+
+        function handleSuccess(stream){
+            window.stream = stream;
+            video.srcObject = stream;
+        }
+        
+        init()
+
+        
+        window.setInterval(()=> {
+            ctx_vision.drawImage(video, 0,0, width,height);
+            ctx_vision.strokeStyle = "red";
+            ctx_vision.strokeRect(((width-zone)/2), ((height-zone)/2), zone, zone);
+
+            ctx_processing.drawImage(video, ((width-zone)/2),((height-zone)/2), zone, zone, 0, 0, 28,28);
+
+
+            
+            var dataURL = canvas_processing.toDataURL();
+            console.log(dataURL)
+            $.ajax({
+                type: "POST",
+                url: $SCRIPT_ROOT + '/get_result',
+                data: dataURL,
+                contentType: "application/json; charset=utf-8",
+            }).done(function(data) {
+                $('#result-element').text(data);
+                console.log("working ajax")
+            });
+            
+        },40)
+
+    </script>
+    <script type=text/javascript>
+        
+
+      </script>
+</body>
+</html>
+

@@ -1,0 +1,57 @@
+body{
+    font-family: 'Roboto Mono', monospace;
+    height: 100vh;
+    align-items: center;
+    justify-content: center;
+    display: flex;
+    flex-flow: center;
+    flex-direction: column; 
+}
+.processing{
+    object-fit: fill;
+    width: 140px;
+    height:140px
+}
+#row_info{
+    align-items: center;
+    justify-content: center;
+    display: flex;
+    flex-flow: center;
+    flex-direction: row; 
+}
+
+.info-block{
+    align-items: center;
+    justify-content: center;
+    display: flex;
+    flex-flow: center;
+    flex-direction: row; 
+}
+
+p{
+    font-size: small;
+}
+
+
+a{
+    color: black;
+}
+
+@media (min-width: 480px) {
+    #presentation{
+        width: 400px;
+    }
+  }
+@media (min-width: 900px) {
+    #presentation{
+        width: 500px;
+    }
+  }
+@media (min-width: 1400px) {
+    #presentation{
+        width: 600px;
+    }
+  }
+
+
+
