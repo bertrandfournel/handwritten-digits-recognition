@@ -37,12 +37,13 @@
     </script>
 
     <script type=text/javascript>
-        $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+        $SCRIPT_ROOT = {{ request.script_root|tojson|safe }}; // Ici on stocke dans une variable le chemin root au server
     </script>
 
     <script>
         'use strict'
 
+        // En premier, on initialise des variables pour travailler avec
         const video = document.getElementById('video');
         const dataCup = document.getElementById('data')
 
@@ -60,39 +61,11 @@
         var ctx_result = canvas_processing.getContext('2d');
 
 
-        const snap = document.getElementById('snap');
         const errorMsgElement = document.getElementById('spanErrorMsg');
         
-        function toBlackAndWhiteAndInverse(arr){
-            let resultNb = []
-            let final = []
-            // Suppression du canal Alpha
-            for (let i = 3; i < arr.length; i+=3) {
-                arr.splice(i, 1)
-            }
-            // Mise en noir et blanc
-            for (let i=0; i < arr.length; i+=3){
-                let pixelNb = Math.round((arr[i] + arr[i+1] + arr[i+2]) / 3)
-                resultNb.push(pixelNb)
-            }
-            // On inverse
-            for(let i=0; i < resultNb.length; i++){
-                let pix = Math.abs(resultNb[i] - 255)
-                final.push(pix)
-            }
-            return final
-        }
 
-        function resize(arr){
-            let final = []
-            for(let i=0; i < arr.length; i+=25){
-                final.push(arr[i])
-            }
-            return final
-        }
 
-        
-
+        // On initialise les paramètres de capture vidéo
         const constraints = {
             audio :false,
             video :{
@@ -101,52 +74,51 @@
             }
         };
         
+        // On initialise une fonction de départ 
         async function init(){
             try{
-                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);// On demande l'accès à la caméra
                 handleSuccess(stream);
             }
             catch(e){
-                errorMsgElement.innerHTML = `navigator.getUserMedia.error:${e.toString()}`;
+                errorMsgElement.innerHTML = `navigator.getUserMedia.error:${e.toString()}`;// En cas d'erreur on affiche le message d'erreur
             }
         }
 
+        // Si nous l'accès à la caméra fonctionne on envoit le stream dans l'objet "video"
         function handleSuccess(stream){
             window.stream = stream;
             video.srcObject = stream;
         }
         
-        init()
+        init() // On lance la fonction de départ (c'est ici que tout commence)
 
-        
+        // Dès que l'accès à la caméra fonctionne on qu'on a récupéré le stream vidéo on va faire quelques traitements (affichage et envoi au backend notamment)
         window.setInterval(()=> {
-            ctx_vision.drawImage(video, 0,0, width,height);
+            ctx_vision.drawImage(video, 0,0, width,height);// On affiche le retour vidéo (on récupère l'objet vidéo)
+            
+            // On dessine un carré rouge
             ctx_vision.strokeStyle = "red";
             ctx_vision.strokeRect(((width-zone)/2), ((height-zone)/2), zone, zone);
 
+            // On dessine sur le cadre du bas ce qui sera envoyé au modèle de reconnaissance
             ctx_processing.drawImage(video, ((width-zone)/2),((height-zone)/2), zone, zone, 0, 0, 28,28);
 
 
-            
-            var dataURL = canvas_processing.toDataURL();
-            console.log(dataURL)
+            // On envoie ce qui est capturé au backend Flask
+            var dataURL = canvas_processing.toDataURL();// On récupère le stream vidéo
             $.ajax({
                 type: "POST",
-                url: $SCRIPT_ROOT + '/get_result',
-                data: dataURL,
-                contentType: "application/json; charset=utf-8",
-            }).done(function(data) {
-                $('#result-element').text(data);
-                console.log("working ajax")
+                url: $SCRIPT_ROOT + '/get_result', // On récupère le chemin d'accès du traitement python (la route /get_result)
+                data: dataURL, // Ici ce sont les données qu'on envoit
+                contentType: "application/json; charset=utf-8", // On prépare le type de données et son encodage
+            }).done(function(data) { // On récupère la réponse du Backend (nommé data)
+                $('#result-element').text(data); // On affiche la réponse dans le HTML
             });
             
-        },40)
+        },4000)// On répète l'opération toutes les 40 ms (soit 25 images par seconde)
 
     </script>
-    <script type=text/javascript>
-        
-
-      </script>
 </body>
 </html>
 
